@@ -36,14 +36,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  // Prevent hydration mismatch
-  if (!mounted) {
-    return <>{children}</>;
-  }
-
   return (
     <ThemeContext.Provider value={{ isDarkMode, toggleDarkMode }}>
-      {children}
+      <div style={{ visibility: mounted ? 'visible' : 'hidden', display: 'contents' }}>
+        {children}
+      </div>
     </ThemeContext.Provider>
   );
 }
