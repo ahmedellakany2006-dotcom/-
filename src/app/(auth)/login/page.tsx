@@ -10,15 +10,26 @@ import { useAuth } from '@/contexts/AuthContext';
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const { login, isLoading } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     if (!email || !password) return;
     
-    await login(email, password);
-    router.push('/');
+    try {
+      await login(email, password);
+      router.push('/');
+    } catch (err: any) {
+      console.error(err);
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+        setError('البريد الإلكتروني أو كلمة المرور غير صحيحة.');
+      } else {
+        setError(err.message || 'حدث خطأ أثناء تسجيل الدخول.');
+      }
+    }
   };
 
   return (
@@ -43,6 +54,12 @@ export default function LoginPage() {
             <h1 className="text-3xl font-bold text-primary mb-2 font-serif">تسجيل الدخول</h1>
             <p className="text-foreground/60">أهلاً بك مجدداً في منتدى القرآن الكريم</p>
           </div>
+
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm font-semibold text-center">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">

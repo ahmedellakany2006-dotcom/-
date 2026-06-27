@@ -11,15 +11,30 @@ export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const { register, isLoading } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     if (!name || !email || !password) return;
     
-    await register(name, email, password);
-    router.push('/');
+    try {
+      await register(name, email, password);
+      router.push('/');
+    } catch (err: any) {
+      console.error(err);
+      if (err.code === 'auth/email-already-in-use') {
+        setError('هذا البريد الإلكتروني مسجل بالفعل.');
+      } else if (err.code === 'auth/weak-password') {
+        setError('كلمة المرور ضعيفة، يجب أن تكون 6 أحرف على الأقل.');
+      } else if (err.code === 'permission-denied' || err.message.includes('permission')) {
+        setError('خطأ في صلاحيات قاعدة البيانات، تأكد من إعدادات Rules في Firebase.');
+      } else {
+        setError(err.message || 'حدث خطأ أثناء إنشاء الحساب.');
+      }
+    }
   };
 
   return (
@@ -44,6 +59,12 @@ export default function RegisterPage() {
             <h1 className="text-3xl font-bold text-primary mb-2 font-serif">إنشاء حساب جديد</h1>
             <p className="text-foreground/60">انضم إلى مجتمع منتدى القرآن الكريم</p>
           </div>
+
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm font-semibold text-center">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
