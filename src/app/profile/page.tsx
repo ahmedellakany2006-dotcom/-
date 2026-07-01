@@ -41,17 +41,7 @@ export default function ProfilePage() {
     router.push('/');
   };
 
-  const handleUpgradeToAdmin = async () => {
-    if (!user) return;
-    try {
-      await updateDoc(doc(db, 'users', user.id), { role: 'admin' });
-      alert("تمت ترقيتك بنجاح! سيتم تحديث الصفحة...");
-      window.location.reload();
-    } catch (e) {
-      console.error(e);
-      alert("حدث خطأ أثناء الترقية.");
-    }
-  };
+
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -161,11 +151,6 @@ export default function ProfilePage() {
                 <button onClick={handleLogout} className="flex items-center gap-2 px-6 py-2 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-900/20 dark:hover:bg-red-900/40 dark:text-red-400 rounded-full font-bold transition-colors">
                   <LogOut className="w-4 h-4" /> تسجيل الخروج
                 </button>
-                {user.role !== 'admin' && (
-                  <button onClick={handleUpgradeToAdmin} className="flex items-center gap-2 px-6 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-full font-bold transition-colors">
-                    ترقية لمشرف (زر مؤقت)
-                  </button>
-                )}
               </div>
             </div>
           </motion.div>

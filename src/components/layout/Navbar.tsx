@@ -13,7 +13,7 @@ export function Navbar() {
 
   return (
     <div className="fixed top-2 sm:top-6 inset-x-0 z-50 flex justify-center px-2 sm:px-4 pointer-events-none">
-      <nav className="pointer-events-auto w-full max-w-5xl backdrop-blur-md bg-white/95 border border-primary/20 shadow-lg rounded-2xl sm:rounded-full transition-all duration-300">
+      <nav className="pointer-events-auto w-full max-w-7xl backdrop-blur-md bg-white/95 border border-primary/20 shadow-lg rounded-2xl sm:rounded-full transition-all duration-300">
         <div className="px-4 sm:px-8">
           <div className="flex justify-between items-center h-16 sm:h-20">
             

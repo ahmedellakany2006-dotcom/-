@@ -14,7 +14,8 @@ import {
   increment,
   arrayUnion,
   arrayRemove,
-  deleteDoc
+  deleteDoc,
+  limit
 } from 'firebase/firestore';
 
 export interface Comment {
@@ -66,7 +67,7 @@ export function ForumProvider({ children }: { children: React.ReactNode }) {
 
   // Listen to Topics from Firestore in Real-time
   useEffect(() => {
-    const q = query(collection(db, 'topics'), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, 'topics'), orderBy('createdAt', 'desc'), limit(100));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetchedTopics: Topic[] = [];
       snapshot.forEach((docSnap) => {
@@ -80,7 +81,7 @@ export function ForumProvider({ children }: { children: React.ReactNode }) {
 
   // Listen to Comments from Firestore in Real-time
   useEffect(() => {
-    const q = query(collection(db, 'comments'), orderBy('createdAt', 'asc'));
+    const q = query(collection(db, 'comments'), orderBy('createdAt', 'asc'), limit(500));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetchedComments: Comment[] = [];
       snapshot.forEach((docSnap) => {
