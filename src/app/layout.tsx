@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ForumProvider } from "@/contexts/ForumContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { FloatingDonation } from "@/components/layout/FloatingDonation";
 
 const tajawal = Tajawal({
   variable: "--font-tajawal",
@@ -34,6 +35,7 @@ export default function RootLayout({
           <AuthProvider>
             <ForumProvider>
               {children}
+              <FloatingDonation />
             </ForumProvider>
           </AuthProvider>
         </ThemeProvider>
