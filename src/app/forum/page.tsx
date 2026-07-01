@@ -4,14 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { MessageSquare, ThumbsUp, Eye, Clock, PlusCircle, X } from "lucide-react";
+import { MessageSquare, ThumbsUp, Eye, Clock, PlusCircle, X, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useForum } from "@/contexts/ForumContext";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function ForumPage() {
-  const { topics, addTopic, toggleLikeTopic } = useForum();
-  const { isAuthenticated } = useAuth();
+  const { topics, addTopic, toggleLikeTopic, deleteTopic } = useForum();
+  const { isAuthenticated, user } = useAuth();
   
   const [activeTab, setActiveTab] = useState("الكل");
   const tabs = ["الكل", "القرآن الكريم", "الحديث الشريف", "العقيدة", "الفقه", "التاريخ"];
@@ -134,12 +134,30 @@ export default function ForumPage() {
                           <span className="text-xs flex items-center gap-1"><Eye className="w-3 h-3"/> مشاهدة</span>
                         </div>
                         <button 
-                          onClick={() => isAuthenticated ? toggleLikeTopic(topic.id) : alert('سجل دخولك للإعجاب')}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (isAuthenticated) toggleLikeTopic(topic.id);
+                            else alert('سجل دخولك للإعجاب');
+                          }}
                           className="flex flex-col items-center hover:text-primary transition-colors"
                         >
                           <span className="font-bold text-primary">{topic.likes}</span>
                           <span className="text-xs flex items-center gap-1"><ThumbsUp className="w-3 h-3"/> إعجاب</span>
                         </button>
+                        {user?.role === 'admin' && (
+                          <button 
+                            onClick={(e) => {
+                              e.preventDefault(); // Prevent navigating to the topic
+                              if (confirm('هل أنت متأكد من حذف الموضوع بالكامل؟')) {
+                                deleteTopic(topic.id);
+                              }
+                            }}
+                            className="flex flex-col items-center text-red-400 hover:text-red-600 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4 mb-1" />
+                            <span className="text-xs font-bold">حذف</span>
+                          </button>
+                        )}
                       </div>
                     </div>
                   </motion.div>

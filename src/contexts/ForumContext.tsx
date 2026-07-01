@@ -11,7 +11,10 @@ import {
   onSnapshot, 
   query, 
   orderBy, 
-  increment 
+  increment,
+  arrayUnion,
+  arrayRemove,
+  deleteDoc
 } from 'firebase/firestore';
 
 export interface Comment {
@@ -23,6 +26,7 @@ export interface Comment {
   content: string;
   createdAt: string;
   likes: number;
+  likedBy?: string[];
   parentId?: string; // If it's a reply to another comment
 }
 
@@ -36,6 +40,7 @@ export interface Topic {
   category: string;
   createdAt: string;
   likes: number;
+  likedBy?: string[];
   views: number;
   repliesCount: number;
 }
@@ -48,6 +53,8 @@ interface ForumContextType {
   toggleLikeTopic: (topicId: string) => Promise<void>;
   toggleLikeComment: (commentId: string) => Promise<void>;
   incrementViews: (topicId: string) => Promise<void>;
+  deleteTopic: (topicId: string) => Promise<void>;
+  deleteComment: (commentId: string) => Promise<void>;
 }
 
 const ForumContext = createContext<ForumContextType | undefined>(undefined);
@@ -97,6 +104,7 @@ export function ForumProvider({ children }: { children: React.ReactNode }) {
       category,
       createdAt: new Date().toISOString(),
       likes: 0,
+      likedBy: [],
       views: 0,
       repliesCount: 0,
     });
@@ -114,6 +122,7 @@ export function ForumProvider({ children }: { children: React.ReactNode }) {
       authorAvatar: user.avatar,
       createdAt: new Date().toISOString(),
       likes: 0,
+      likedBy: [],
       parentId: parentId || null,
     });
 
@@ -125,17 +134,45 @@ export function ForumProvider({ children }: { children: React.ReactNode }) {
   };
 
   const toggleLikeTopic = async (topicId: string) => {
+    if (!user) return;
+    const topic = topics.find(t => t.id === topicId);
+    if (!topic) return;
+
     const topicRef = doc(db, 'topics', topicId);
-    await updateDoc(topicRef, {
-      likes: increment(1) // In a real app, track user likes to prevent multi-liking
-    });
+    const hasLiked = topic.likedBy?.includes(user.id);
+
+    if (hasLiked) {
+      await updateDoc(topicRef, {
+        likes: increment(-1),
+        likedBy: arrayRemove(user.id)
+      });
+    } else {
+      await updateDoc(topicRef, {
+        likes: increment(1),
+        likedBy: arrayUnion(user.id)
+      });
+    }
   };
 
   const toggleLikeComment = async (commentId: string) => {
+    if (!user) return;
+    const comment = comments.find(c => c.id === commentId);
+    if (!comment) return;
+
     const commentRef = doc(db, 'comments', commentId);
-    await updateDoc(commentRef, {
-      likes: increment(1)
-    });
+    const hasLiked = comment.likedBy?.includes(user.id);
+
+    if (hasLiked) {
+      await updateDoc(commentRef, {
+        likes: increment(-1),
+        likedBy: arrayRemove(user.id)
+      });
+    } else {
+      await updateDoc(commentRef, {
+        likes: increment(1),
+        likedBy: arrayUnion(user.id)
+      });
+    }
   };
 
   const incrementViews = async (topicId: string) => {
@@ -143,6 +180,16 @@ export function ForumProvider({ children }: { children: React.ReactNode }) {
     await updateDoc(topicRef, {
       views: increment(1)
     });
+  };
+
+  const deleteTopic = async (topicId: string) => {
+    if (user?.role !== 'admin') return;
+    await deleteDoc(doc(db, 'topics', topicId));
+  };
+
+  const deleteComment = async (commentId: string) => {
+    if (user?.role !== 'admin') return;
+    await deleteDoc(doc(db, 'comments', commentId));
   };
 
   return (
@@ -153,7 +200,9 @@ export function ForumProvider({ children }: { children: React.ReactNode }) {
       addComment, 
       toggleLikeTopic, 
       toggleLikeComment,
-      incrementViews
+      incrementViews,
+      deleteTopic,
+      deleteComment
     }}>
       {children}
     </ForumContext.Provider>

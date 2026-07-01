@@ -1,19 +1,22 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { useAuth } from '@/contexts/AuthContext';
 import { useForum } from '@/contexts/ForumContext';
-import { User, MessageSquare, ThumbsUp, FileText, Settings, LogOut } from 'lucide-react';
+import { User, MessageSquare, ThumbsUp, FileText, Settings, LogOut, Camera } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { db } from '@/lib/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 
 export default function ProfilePage() {
   const { user, isAuthenticated, logout } = useAuth();
   const { topics, comments } = useForum();
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -38,6 +41,78 @@ export default function ProfilePage() {
     router.push('/');
   };
 
+  const handleUpgradeToAdmin = async () => {
+    if (!user) return;
+    try {
+      await updateDoc(doc(db, 'users', user.id), { role: 'admin' });
+      alert("تمت ترقيتك بنجاح! سيتم تحديث الصفحة...");
+      window.location.reload();
+    } catch (e) {
+      console.error(e);
+      alert("حدث خطأ أثناء الترقية.");
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('الرجاء اختيار صورة صالحة.');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert('حجم الصورة كبير جداً، اختر صورة أقل من 2 ميجابايت.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64String = event.target?.result as string;
+      
+      const img = new Image();
+      img.src = base64String;
+      img.onload = async () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 200;
+        const MAX_HEIGHT = 200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        const compressedBase64 = canvas.toDataURL('image/webp', 0.7);
+
+        try {
+          if (!user) return;
+          await updateDoc(doc(db, 'users', user.id), { avatar: compressedBase64 });
+          alert('تم تحديث الصورة الشخصية بنجاح! سيتم تحديث الصفحة.');
+          window.location.reload();
+        } catch (error) {
+          console.error(error);
+          alert('حدث خطأ أثناء رفع الصورة.');
+        }
+      };
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <>
       <Navbar />
@@ -52,12 +127,28 @@ export default function ProfilePage() {
             animate={{ opacity: 1, y: 0 }}
             className="bg-white dark:bg-gray-800 rounded-3xl p-8 md:p-10 shadow-sm border border-primary/10 dark:border-gray-700 mb-8 flex flex-col md:flex-row items-center gap-8"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img 
-              src={user.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=user"} 
-              alt="Profile" 
-              className="w-32 h-32 rounded-full border-4 border-primary/20 dark:border-emerald-500/30 object-cover"
-            />
+            <div className="relative group cursor-pointer w-32 h-32 flex-shrink-0 mx-auto md:mx-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img 
+                src={user.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=user"} 
+                alt="Profile" 
+                className="w-full h-full rounded-full border-4 border-primary/20 dark:border-emerald-500/30 object-cover"
+              />
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                title="تغيير الصورة الشخصية"
+              >
+                <Camera className="w-8 h-8 text-white" />
+              </button>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileChange} 
+                accept="image/*" 
+                className="hidden" 
+              />
+            </div>
             
             <div className="flex-1 text-center md:text-right">
               <h1 className="text-3xl font-bold text-primary dark:text-emerald-400 mb-2">{user.name}</h1>
@@ -70,6 +161,11 @@ export default function ProfilePage() {
                 <button onClick={handleLogout} className="flex items-center gap-2 px-6 py-2 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-900/20 dark:hover:bg-red-900/40 dark:text-red-400 rounded-full font-bold transition-colors">
                   <LogOut className="w-4 h-4" /> تسجيل الخروج
                 </button>
+                {user.role !== 'admin' && (
+                  <button onClick={handleUpgradeToAdmin} className="flex items-center gap-2 px-6 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-full font-bold transition-colors">
+                    ترقية لمشرف (زر مؤقت)
+                  </button>
+                )}
               </div>
             </div>
           </motion.div>

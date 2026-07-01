@@ -7,13 +7,13 @@ import { useForum } from '@/contexts/ForumContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { ArrowRight, MessageSquare, ThumbsUp, Eye, Clock, CornerDownLeft, Send } from 'lucide-react';
+import { ArrowRight, MessageSquare, ThumbsUp, Eye, Clock, CornerDownLeft, Send, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function TopicPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { topics, comments, incrementViews, toggleLikeTopic, toggleLikeComment, addComment } = useForum();
+  const { topics, comments, incrementViews, toggleLikeTopic, toggleLikeComment, addComment, deleteTopic, deleteComment } = useForum();
   const { user, isAuthenticated } = useAuth();
   
   const [newComment, setNewComment] = useState("");
@@ -58,6 +58,19 @@ export default function TopicPage() {
     setReplyingTo(null);
   };
 
+  const handleDeleteTopic = async () => {
+    if (confirm('هل أنت متأكد من حذف هذا الموضوع بالكامل؟')) {
+      await deleteTopic(topic.id);
+      router.push('/forum');
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (confirm('هل أنت متأكد من حذف هذا التعليق؟')) {
+      await deleteComment(commentId);
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('ar-EG', { 
       year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' 
@@ -96,15 +109,26 @@ export default function TopicPage() {
               {topic.title}
             </h1>
 
-            <div className="flex items-center gap-4 mb-8 pb-6 border-b border-gray-100">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={topic.authorAvatar} alt="avatar" className="w-12 h-12 rounded-full border-2 border-primary/20" />
-              <div>
-                <p className="font-bold text-foreground">{topic.authorName}</p>
-                <p className="text-sm text-foreground/50 flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> {formatDate(topic.createdAt)}
-                </p>
+            <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-100">
+              <div className="flex items-center gap-4">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={topic.authorAvatar} alt="avatar" className="w-12 h-12 rounded-full border-2 border-primary/20" />
+                <div>
+                  <p className="font-bold text-foreground">{topic.authorName}</p>
+                  <p className="text-sm text-foreground/50 flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> {formatDate(topic.createdAt)}
+                  </p>
+                </div>
               </div>
+              {user?.role === 'admin' && (
+                <button 
+                  onClick={handleDeleteTopic}
+                  className="flex items-center gap-2 text-red-500 hover:bg-red-50 px-4 py-2 rounded-xl transition-colors font-bold text-sm"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  حذف
+                </button>
+              )}
             </div>
 
             <div className="prose prose-lg prose-emerald max-w-none text-foreground/80 mb-10 leading-loose">
@@ -185,6 +209,14 @@ export default function TopicPage() {
                           <p className="font-bold text-primary">{comment.authorName}</p>
                           <p className="text-xs text-foreground/50">{formatDate(comment.createdAt)}</p>
                         </div>
+                        {user?.role === 'admin' && (
+                          <button 
+                            onClick={() => handleDeleteComment(comment.id)}
+                            className="text-red-400 hover:text-red-600 p-1"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                       <p className="text-foreground/80 leading-relaxed mb-4">{comment.content}</p>
                       
@@ -237,6 +269,14 @@ export default function TopicPage() {
                                 <p className="font-bold text-primary text-sm">{reply.authorName}</p>
                                 <p className="text-xs text-foreground/50">{formatDate(reply.createdAt)}</p>
                               </div>
+                              {user?.role === 'admin' && (
+                                <button 
+                                  onClick={() => handleDeleteComment(reply.id)}
+                                  className="text-red-400 hover:text-red-600 p-1"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
                             </div>
                             <p className="text-foreground/80 text-sm leading-relaxed mb-3">{reply.content}</p>
                             
